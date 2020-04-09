@@ -1,0 +1,30 @@
+#!/bin/sh
+
+HELP='Extract DMG files downloaded from https://mac-torrent-download.net
+Usage: mtde <downloaded directory>'
+
+TARGET=$1
+if [ "$TARGET" = '' ] || [[ "$TARGET" = -* ]]; then
+	echo "$HELP"
+	exit 0
+fi
+
+if [ ! -d "$TARGET" ]; then
+	echo "mtde: $TARGET: no such directory"
+	exit 1
+fi
+
+cd "$TARGET"
+PW_URL=$(cat \#\ ReadMe.pdf | strings | awk -F'[\()]' '/mac-torrent-download.net\/pw.php/ {print $(NF-1)}')
+PASS=$(curl $PW_URL \
+-s \
+-H 'Cookie: glx_pp_14617' \
+-H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.162 Safari/537.36' \
+-H 'Accept-Encoding: br, gzip, deflate' \
+--compressed | grep 'id="passwd"' | sed 's/.*value="\(.*\)".*/\1/')
+DMG=$(find . -type f -name "*.dmg" -exec basename {} \;)
+printf '%s' $PASS | hdiutil attach "$DMG" -stdinpass
+mkdir origin
+ls -A | grep -v origin | xargs -I % mv % origin
+cp -iR /Volumes/"${DMG%.*}"/* .
+hdiutil detach /Volumes/"${DMG%.*}"

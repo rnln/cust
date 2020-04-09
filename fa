@@ -1,0 +1,74 @@
+#!/bin/sh
+
+HELP_START="Usage: fa [options] <name>"
+
+HELP_FULL="Search files by given name using regular expressions
+$HELP_START
+Options:
+    -c, --current     search in current directory
+    -d, --delete      delete
+    -e, --errors      print stderr
+    -f, --flush       flush screen before
+    -h, --help        print this help and exit
+    -i, --ignore-case ignore case
+    -p, --prefix      search by prefix
+    -s, --suffix      search by suffix
+    -u, --user        search with user rights without sudo"
+
+HELP_TRY="$HELP_START
+Try \`fa -h\` for more information"
+
+if [[ $# == 0 ]]; then
+	echo "$HELP_TRY"
+	exit 64
+fi
+
+SEARCH_PATH="/"
+
+while [[ $# -gt 0 ]]; do
+	key="$1"
+	case $key in
+		-c|--current)     SEARCH_PATH="."; shift;;
+		-d|--delete)      DELETE="--delete"; shift;;
+		-e|--errors)      ERRORS=true; shift;;
+		-f|--flush)       FLUSH=true; shift;;
+		-h|--help)        echo "$HELP_FULL"; exit 0;;
+		-i|--ignore-case) IGNORE_CASE="i"; shift;;
+		-p|--prefix)      PREFIX="*"; shift;;
+		-s|--suffix)      SUFFIX=true; shift;;
+		-u|--user)        USER=true; shift;;
+		-*) echo "Unknown option: $key\n$HELP_TRY"; exit 64;;
+		*)
+			if [ -z ${NAME+_} ]; then
+				NAME=$key
+				shift
+			else
+				echo "$HELP_TRY"
+				exit 64
+			fi
+			;;
+	esac
+done
+
+if [ -z ${NAME+_} ]; then
+	echo "$HELP_TRY"
+	exit 64
+fi
+
+CLEAN_OUTPUT="-not -path \"/System/Volumes/Data/*\"
+              -not -path \"/System/Library/Templates/*\""
+if [ "$ERRORS" = true ]; then CLEAN_OUTPUT="$CLEAN_OUTPUT 2>/dev/null"; fi
+if [ ! "$USER" = true ]; then sudo true; fi
+if [ "$FLUSH" = true ]; then clear && echo -en "\e[3J"; fi
+
+if [ "$PREFIX" = true ] && [ "$SUFFIX" = true ]; then NAME="^$NAME.+|.+$NAME$"
+elif [ "$PREFIX" = true ]; then NAME="^$NAME.+"
+elif [ "$SUFFIX" = true ]; then NAME=".+$NAME$"
+else NAME=".*$NAME.*"; fi
+
+FIND="find $SEARCH_PATH -${IGNORE_CASE}regex $DELETE \"$NAME\" $CLEAN_OUTPUT | grep -v '^find: '"
+if [ ! "$USER" = true ]; then FIND="sudo $FIND"; fi
+
+eval $FIND
+
+exit 0
