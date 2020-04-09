@@ -1,6 +1,6 @@
 #!/bin/sh
 
-HELP_START="Usage: fa [options] <name>"
+HELP_START="Usage: omnifind [options] <name>"
 
 HELP_FULL="Search files by given name using regular expressions
 $HELP_START
@@ -16,7 +16,7 @@ Options:
     -u, --user        search with user rights without sudo"
 
 HELP_TRY="$HELP_START
-Try \`fa -h\` for more information"
+Try \`omnifind -h\` for more information"
 
 if [[ $# == 0 ]]; then
 	echo "$HELP_TRY"
